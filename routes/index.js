@@ -13,7 +13,7 @@ const {
 // router.post('/request-document', sendVerificationCode);
   
 // generate document
-router.post('/generate-document/:type', generateDocument);
+router.post('/generate-document/:type/:prodi', generateDocument);
 
 // document routes
 router.get('/documents', allDocuments);

@@ -2,21 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
-const { lastNumber } = require('../api');
+const { v4: uuidv4 } = require('uuid'); // Import UUID v4
+const { lastNumber, uploadFileToApi } = require('../api'); // Hanya import lastNumber
 const { generateQRCodeWithImage } = require('./generate-qrcode');
 const ImageModule = require('docxtemplater-image-module-free');
 
-const generateDocument = async (type, data) => {
+const generateDocument = async (type, data, prodi) => {
   try {
     const no_surat = await lastNumber(type);
-    const templatePath = path.resolve(__dirname, `../templates/${type}.docx`);
+    const templatePath = path.resolve(__dirname, `../templates/${type}/${prodi}.docx`);
     const templateContent = fs.readFileSync(templatePath, 'binary');
     const zip = new PizZip(templateContent);
-
-    const qrCodePath = await generateQRCodeWithImage(
-      `${no_surat},${data.nama_ttd || 'Unknown'}`
-    );
-
+    const uuid = uuidv4();
+    const qrCodePath = await generateQRCodeWithImage(`https://storage.superapps.if.unismuh.ac.id/${uuid}`);
     const imageModuleOpts = {
       centered: true,
       fileType: 'docx',
@@ -44,21 +42,26 @@ const generateDocument = async (type, data) => {
 
     doc.render();
 
-    const outputDir = path.resolve(__dirname, '../templates/output');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    const time = new Date().getTime();
-    const outputPath = path.join(outputDir, `${time}.docx`);
     const buffer = doc.getZip().generate({ type: 'nodebuffer' });
-    fs.writeFileSync(outputPath, buffer);
 
-    return { filePath: outputPath, no_surat: no_surat };
+    if (qrCodePath && fs.existsSync(qrCodePath)) {
+      fs.unlinkSync(qrCodePath);
+    }
+
+    const uploadResult = await uploadFileToApi(buffer, uuid);
+
+    if (!uploadResult || !uploadResult?.fileId) {
+      throw new Error('Gagal mengunggah dokumen ke API.');
+    }
+    return {
+      id_document: uploadResult?.fileId,
+      no_surat,
+      link_document: `https://storage.superapps.if.unismuh.ac.id/${uuid}`,
+      message: 'Dokumen berhasil dibuat dan diunggah.',
+    };
   } catch (error) {
-    console.error('Error generating document:', error);
-    throw new Error('Gagal membuat dokumen');
+    throw new Error(`Gagal membuat dokumen: ${error.message}`);
   }
 };
 
 module.exports = generateDocument;
-

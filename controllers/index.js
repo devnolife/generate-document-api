@@ -9,10 +9,10 @@ const {
 
 const generateDocument = async (req, res) => {
   try {
-    const { type } = req.params;
+    const { type, prodi } = req.params;
     const data = req.body;
-    const result = await serviceDocument({ type, data });
-    res.json(result);
+    const result = await serviceDocument({ type, data, prodi });
+    res.send(result).status(200);
   } catch (error) {
     res.status(500).send('Server mengalami masalah');
   }

@@ -2,7 +2,7 @@ const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
 
-const generateQRCodeWithImage = async (data) => {
+const generateQRCodeWithImage = async (link) => {
   try {
     const qrCodeDir = path.resolve(__dirname, '../templates/qr-code');
     const qrOutputPath = path.join(qrCodeDir, 'qr-code.png');
@@ -11,7 +11,7 @@ const generateQRCodeWithImage = async (data) => {
       fs.mkdirSync(qrCodeDir, { recursive: true });
     }
 
-    await QRCode.toFile(qrOutputPath, data, {
+    await QRCode.toFile(qrOutputPath, link, {
       width: 300,
       margin: 2,
     });

@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "axios": "^1.7.7",
     "cors": "^2.8.5",
     "docx-pdf": "^0.0.1",
     "docxtemplater": "^3.53.0",

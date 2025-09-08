@@ -27,7 +27,7 @@ const generateDocument = async (type, data) => {
         throw new Error(`Tag ${tagValue} tidak dikenal`);
       },
       getSize: () => {
-        return [120, 120];
+        return [100, 100];
       },
     };
 

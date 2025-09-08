@@ -9,15 +9,23 @@ datasource db {
 
 model documents {
   id              Int               @id @default(autoincrement())
-  type            String            @db.VarChar(50) @unique
+  type            String            @db.VarChar(50)
+  prodi           String?           @db.VarChar(100)
+  template_path   String?           @db.VarChar(255)
+  description     String?           @db.Text
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   document_fields document_fields[]
+  
+  @@unique([type, prodi])
 }
 
 model document_fields {
   id          Int        @id @default(autoincrement())
   document_id Int?
   field_name  String     @db.VarChar(255)
-  filed       String     @db.VarChar(50)
+  field_type  String     @db.VarChar(50)
+  is_required Boolean?   @default(true)
+  default_value String? @db.Text
+  created_at  DateTime?  @default(now()) @db.Timestamp(6)
   documents   documents? @relation(fields: [document_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

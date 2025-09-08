@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .form-floating {
+            margin-bottom: 1rem;
+        }
+        .required-field {
+            border-left: 3px solid #dc3545;
+        }
+        .optional-field {
+            border-left: 3px solid #28a745;
+        }
+        .student-row {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .remove-student-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-spinner {
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+            <h4>Generating document...</h4>
+            <p>Please wait while we process your request</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-file-alt me-2"></i>
+                Generate Document API
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs">API Docs</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-success text-white py-4">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/" class="text-white-50">Home</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="/templates" class="text-white-50">Templates</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="/templates/<%= document.type %>/<%= document.prodi %>" class="text-white-50">
+                            <%= document.type %> - <%= document.prodi %>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">
+                        Generate
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="display-5 mb-2">
+                <i class="fas fa-plus-circle me-3"></i>
+                Generate <%= document.type.toUpperCase() %>
+            </h1>
+            <p class="lead mb-0">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Program Studi <%= document.prodi %>
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Success/Error Messages -->
+        <div id="alertContainer"></div>
+
+        <form id="generateForm">
+            <div class="row">
+                <!-- Form Fields -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-edit me-2"></i>
+                                Document Fields
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <% document.document_fields.forEach(field => { %>
+                                <% if (field.field_type === 'table' || field.field_type === 'array') { %>
+                                    <!-- Table Data Section -->
+                                    <div class="mb-4 p-3 border rounded <%= field.is_required ? 'required-field' : 'optional-field' %>">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-table me-2"></i>
+                                                <%= field.field_name %>
+                                                <% if (field.is_required) { %>
+                                                    <span class="badge bg-danger ms-2">Required</span>
+                                                <% } else { %>
+                                                    <span class="badge bg-success ms-2">Optional</span>
+                                                <% } %>
+                                            </h6>
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="addStudent()">
+                                                <i class="fas fa-plus me-1"></i>
+                                                Add Student
+                                            </button>
+                                        </div>
+                                        <div id="studentsContainer">
+                                            <!-- Students will be added here dynamically -->
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Add student data for the document
+                                        </small>
+                                    </div>
+                                <% } else { %>
+                                    <!-- Regular Fields -->
+                                    <div class="form-floating mb-3 <%= field.is_required ? 'required-field' : 'optional-field' %>">
+                                        <% if (field.field_type === 'text') { %>
+                                            <textarea 
+                                                class="form-control" 
+                                                id="<%= field.field_name %>" 
+                                                name="<%= field.field_name %>"
+                                                placeholder="<%= field.field_name %>"
+                                                style="height: 100px"
+                                                <% if (field.is_required) { %>required<% } %>
+                                            ><%= field.default_value || '' %></textarea>
+                                        <% } else { %>
+                                            <input 
+                                                type="<% if (field.field_type === 'number') { %>number<% } else if (field.field_type.includes('date')) { %>date<% } else { %>text<% } %>" 
+                                                class="form-control" 
+                                                id="<%= field.field_name %>" 
+                                                name="<%= field.field_name %>"
+                                                placeholder="<%= field.field_name %>"
+                                                value="<%= field.default_value || '' %>"
+                                                <% if (field.is_required) { %>required<% } %>
+                                            />
+                                        <% } %>
+                                        <label for="<%= field.field_name %>">
+                                            <i class="fas fa-tag me-1"></i>
+                                            <%= field.field_name %>
+                                            <% if (field.is_required) { %>
+                                                <span class="text-danger">*</span>
+                                            <% } %>
+                                        </label>
+                                        <% if (field.field_type === 'date_hijriyah') { %>
+                                            <div class="form-text">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Format: YYYY/MM/DD (Hijri date)
+                                            </div>
+                                        <% } else if (field.field_type === 'date_masehi') { %>
+                                            <div class="form-text">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Format: YYYY-MM-DD (Gregorian date)
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                <% } %>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Template Info -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Template Info
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td><strong>Type:</strong></td>
+                                    <td><span class="badge bg-primary"><%= document.type.toUpperCase() %></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Prodi:</strong></td>
+                                    <td><span class="badge bg-secondary"><%= document.prodi %></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fields:</strong></td>
+                                    <td><span class="badge bg-info"><%= document.document_fields.length %></span></td>
+                                </tr>
+                            </table>
+                            <% if (document.description) { %>
+                                <hr>
+                                <small class="text-muted"><%= document.description %></small>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Field Summary -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-list me-2"></i>
+                                Field Summary
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h4 class="text-danger"><%= document.document_fields.filter(field => field.is_required).length %></h4>
+                                        <small class="text-muted">Required</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-success"><%= document.document_fields.filter(field => !field.is_required).length %></h4>
+                                    <small class="text-muted">Optional</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-magic me-2"></i>
+                                Generate Document
+                            </button>
+                            <hr>
+                            <div class="d-grid gap-2">
+                                <a href="/templates/<%= document.type %>/<%= document.prodi %>" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Template Details
+                                </a>
+                                <a href="/templates" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-arrow-left me-1"></i>
+                                    Back to Templates
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-plus-circle me-2"></i>
+                Generate Document - <%= document.type.toUpperCase() %> (<%= document.prodi %>)
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let studentCount = 0;
+
+        // Add initial student if table data is required
+        <% if (document.document_fields.some(field => (field.field_type === 'table' || field.field_type === 'array') && field.is_required)) { %>
+            addStudent();
+        <% } %>
+
+        function addStudent() {
+            studentCount++;
+            const container = document.getElementById('studentsContainer');
+            const studentDiv = document.createElement('div');
+            studentDiv.className = 'student-row';
+            studentDiv.innerHTML = `
+                <button type="button" class="btn btn-sm btn-outline-danger remove-student-btn" onclick="removeStudent(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h6 class="mb-3">Student #${studentCount}</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" name="student_nama_${studentCount}" placeholder="Nama">
+                            <label>Nama</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" name="student_nim_${studentCount}" placeholder="NIM">
+                            <label>NIM</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" name="student_semester_${studentCount}" placeholder="Semester">
+                            <label>Semester</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(studentDiv);
+        }
+
+        function removeStudent(button) {
+            const studentRow = button.closest('.student-row');
+            studentRow.remove();
+        }
+
+        // Form submission
+        document.getElementById('generateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            try {
+                // Collect form data
+                const formData = new FormData(this);
+                const data = {};
+                
+                // Process regular fields
+                for (let [key, value] of formData.entries()) {
+                    if (!key.startsWith('student_')) {
+                        data[key] = value;
+                    }
+                }
+                
+                // Process student data
+                const tableData = [];
+                const studentElements = document.querySelectorAll('.student-row');
+                studentElements.forEach((row, index) => {
+                    const namaInput = row.querySelector('[name^="student_nama_"]');
+                    const nimInput = row.querySelector('[name^="student_nim_"]');
+                    const semesterInput = row.querySelector('[name^="student_semester_"]');
+                    
+                    if (namaInput && namaInput.value.trim()) {
+                        tableData.push({
+                            nama: namaInput.value.trim(),
+                            nim: nimInput ? nimInput.value.trim() : '',
+                            semester: semesterInput ? semesterInput.value.trim() : ''
+                        });
+                    }
+                });
+                
+                if (tableData.length > 0) {
+                    data.tableData = tableData;
+                }
+                
+                // Submit to API
+                const response = await fetch('/api/generate-document/<%= document.type %>/<%= document.prodi %>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('success', `Document generated successfully! File: ${result.data.filePath}`);
+                    // Reset form
+                    this.reset();
+                    document.getElementById('studentsContainer').innerHTML = '';
+                    studentCount = 0;
+                } else {
+                    showAlert('danger', `Error: ${result.message}`);
+                }
+                
+            } catch (error) {
+                showAlert('danger', `Error: ${error.message}`);
+            } finally {
+                // Hide loading
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        });
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+            
+            // Scroll to top to show alert
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

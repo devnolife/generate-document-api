@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .field-card {
+            transition: transform 0.2s ease;
+        }
+        .field-card:hover {
+            transform: translateY(-2px);
+        }
+        .required-field {
+            border-left: 4px solid #dc3545;
+        }
+        .optional-field {
+            border-left: 4px solid #28a745;
+        }
+        .api-code {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-file-alt me-2"></i>
+                Generate Document API
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs">API Docs</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-gradient text-white py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/" class="text-white-50">Home</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="/templates" class="text-white-50">Templates</a>
+                    </li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">
+                        <%= document.type %> - <%= document.prodi %>
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="display-5 mb-2">
+                <i class="fas fa-file-alt me-3"></i>
+                <%= document.type.toUpperCase() %>
+            </h1>
+            <p class="lead mb-1">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Program Studi <%= document.prodi %>
+            </p>
+            <p class="mb-0 text-white-50">
+                <i class="fas fa-folder me-1"></i>
+                <%= document.template_path %>
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Template Info -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="fas fa-info-circle me-2 text-info"></i>
+                            Template Information
+                        </h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Document Type:</strong></td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                <%= document.type.toUpperCase() %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Program Studi:</strong></td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                <%= document.prodi %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Total Fields:</strong></td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                <%= document.document_fields.length %> fields
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Required Fields:</strong></td>
+                                        <td>
+                                            <span class="badge bg-danger">
+                                                <%= document.document_fields.filter(field => field.is_required).length %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Optional Fields:</strong></td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                <%= document.document_fields.filter(field => !field.is_required).length %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Template Path:</strong></td>
+                                        <td>
+                                            <code><%= document.template_path %></code>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <% if (document.description) { %>
+                        <div class="mt-3">
+                            <strong>Description:</strong>
+                            <p class="text-muted mt-1"><%= document.description %></p>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fields Details -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h4 class="mb-4">
+                    <i class="fas fa-list me-2 text-primary"></i>
+                    Field Details
+                </h4>
+                <div class="row">
+                    <% document.document_fields.forEach((field, index) => { %>
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card field-card h-100 <%= field.is_required ? 'required-field' : 'optional-field' %>">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-tag me-1"></i>
+                                        <%= field.field_name %>
+                                    </h6>
+                                    <% if (field.is_required) { %>
+                                    <span class="badge bg-danger">Required</span>
+                                    <% } else { %>
+                                    <span class="badge bg-success">Optional</span>
+                                    <% } %>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">Type:</small>
+                                    <span class="badge bg-secondary ms-1">
+                                        <%= field.field_type %>
+                                    </span>
+                                </div>
+                                
+                                <% if (field.default_value) { %>
+                                <div class="mb-2">
+                                    <small class="text-muted">Default Value:</small>
+                                    <br>
+                                    <code class="small"><%= field.default_value %></code>
+                                </div>
+                                <% } %>
+                                
+                                <!-- Field Type Description -->
+                                <small class="text-muted">
+                                    <% switch(field.field_type) { 
+                                        case 'string':
+                                        case 'text': %>
+                                            Text input field
+                                        <% break; case 'date_hijriyah': %>
+                                            Hijri date (YYYY/MM/DD)
+                                        <% break; case 'date_masehi': %>
+                                            Gregorian date (YYYY-MM-DD)
+                                        <% break; case 'table':
+                                        case 'array': %>
+                                            Array of objects/data
+                                        <% break; case 'number': %>
+                                            Numeric value
+                                        <% break; case 'boolean': %>
+                                            True/False value
+                                        <% break; default: %>
+                                            <%= field.field_type %> field
+                                    <% } %>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <% }); %>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Example -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h4 class="mb-4">
+                    <i class="fas fa-code me-2 text-success"></i>
+                    API Usage Example
+                </h4>
+                
+                <!-- cURL Example -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-terminal me-2"></i>
+                            cURL Command
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="api-code">
+<pre>curl -X POST "http://localhost:8080/api/generate-document/<%= document.type %>/<%= document.prodi %>" \
+  -H "Content-Type: application/json" \
+  -d '{
+<% document.document_fields.forEach((field, index) => { %>  "<%= field.field_name %>": <% switch(field.field_type) {
+    case 'string':
+    case 'text': %>"<%= field.default_value || 'Your text here' %>"<% break;
+    case 'date_hijriyah': %>"1445/06/15"<% break;
+    case 'date_masehi': %>"2024-01-15"<% break;
+    case 'table':
+    case 'array': %>[
+    {
+      "nama": "John Doe",
+      "nim": "123456",
+      "semester": "6"
+    }
+  ]<% break;
+    case 'number': %>123<% break;
+    case 'boolean': %>true<% break;
+    default: %>"value"<% break;
+  } %><%= index < document.document_fields.length - 1 ? ',' : '' %>
+<% }); %>}'</pre>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('curl-example')">
+                            <i class="fas fa-copy me-1"></i>
+                            Copy Command
+                        </button>
+                    </div>
+                </div>
+
+                <!-- JavaScript Example -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fab fa-js-square me-2"></i>
+                            JavaScript Fetch
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="api-code">
+<pre>const response = await fetch('/api/generate-document/<%= document.type %>/<%= document.prodi %>', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+<% document.document_fields.forEach((field, index) => { %>    <%= field.field_name %>: <% switch(field.field_type) {
+    case 'string':
+    case 'text': %>'<%= field.default_value || 'Your text here' %>'<% break;
+    case 'date_hijriyah': %>'1445/06/15'<% break;
+    case 'date_masehi': %>'2024-01-15'<% break;
+    case 'table':
+    case 'array': %>[
+      {
+        nama: 'John Doe',
+        nim: '123456',
+        semester: '6'
+      }
+    ]<% break;
+    case 'number': %>123<% break;
+    case 'boolean': %>true<% break;
+    default: %>'value'<% break;
+  } %><%= index < document.document_fields.length - 1 ? ',' : '' %>
+<% }); %>  })
+});
+
+const result = await response.json();
+console.log(result);</pre>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyToClipboard('js-example')">
+                            <i class="fas fa-copy me-1"></i>
+                            Copy Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="/generate/<%= document.type %>/<%= document.prodi %>" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus me-2"></i>
+                        Generate Document
+                    </a>
+                    <a href="/templates" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Templates
+                    </a>
+                    <a href="/docs" class="btn btn-outline-info">
+                        <i class="fas fa-book me-2"></i>
+                        API Documentation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-file-alt me-2"></i>
+                Template Detail - <%= document.type.toUpperCase() %> (<%= document.prodi %>)
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.querySelector(`#${elementId} pre, .api-code pre`);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show toast or success message
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-primary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

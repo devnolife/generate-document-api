@@ -6,15 +6,25 @@ const { lastNumber } = require('../api');
 const { generateQRCodeWithImage } = require('./generate-qrcode');
 const ImageModule = require('docxtemplater-image-module-free');
 
-const generateDocument = async (type, data) => {
+const generateDocument = async (type, prodi, data) => {
   try {
     const no_surat = await lastNumber(type);
-    const templatePath = path.resolve(__dirname, `../templates/${type}.docx`);
+
+    // Gunakan template path dari metadata jika ada, fallback ke path lama
+    const templatePath = data._metadata?.template_path
+      ? path.resolve(__dirname, '..', data._metadata.template_path)
+      : path.resolve(__dirname, `../templates/${prodi}/${type}.docx`);
+
+    // Cek apakah template file ada
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template file tidak ditemukan: ${templatePath}`);
+    }
+
     const templateContent = fs.readFileSync(templatePath, 'binary');
     const zip = new PizZip(templateContent);
 
     const qrCodePath = await generateQRCodeWithImage(
-      `${no_surat},${data.nama_ttd || 'Unknown'}`
+      `${no_surat},${data.nama_ttd || 'Unknown'},${prodi}`
     );
 
     const imageModuleOpts = {
@@ -36,9 +46,13 @@ const generateDocument = async (type, data) => {
       .attachModule(imageModule)
       .loadZip(zip);
 
+    // Hapus metadata sebelum render
+    const { _metadata, ...renderData } = data;
+
     doc.setData({
-      ...data,
+      ...renderData,
       no_surat,
+      prodi: prodi,
       qrCode: 'qrCode',
     });
 
@@ -49,14 +63,14 @@ const generateDocument = async (type, data) => {
       fs.mkdirSync(outputDir, { recursive: true });
     }
     const time = new Date().getTime();
-    const outputPath = path.join(outputDir, `${time}.docx`);
+    const outputPath = path.join(outputDir, `${prodi}_${type}_${time}.docx`);
     const buffer = doc.getZip().generate({ type: 'nodebuffer' });
     fs.writeFileSync(outputPath, buffer);
 
     return { filePath: outputPath, no_surat: no_surat };
   } catch (error) {
     console.error('Error generating document:', error);
-    throw new Error('Gagal membuat dokumen');
+    throw new Error(`Gagal membuat dokumen: ${error.message}`);
   }
 };
 
